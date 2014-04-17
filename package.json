@@ -1,0 +1,49 @@
+{
+  "name": "warlock",
+  "version": "1.0.0-alpha.1",
+  "description": "A flexible, extensible, best-practices build automation and management system for web projects.",
+  "homepage": "http://getwarlock.com",
+  "author": {
+    "name": "Warlock Team",
+    "url": "http://getwarlock.com"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/ngbp/warlock.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ngbp/warlock"
+  },
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/ngbp/warlock/blob/master/LICENSE"
+    }
+  ],
+  "engines": {
+    "node": ">= 0.8"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "async": "~0.2",
+    "mout": "~0.8",
+    "q": "~0.9.7",
+    "colors": "~0.6.2",
+    "mkdirp": "~0.3.5",
+    "exit": "~0.1.2",
+    "findup-sync": "~0.1.2",
+    "deepmerge": "~0.2.7",
+    "orchestrator": "~0.3.3",
+    "event-stream": "~3.1.0",
+    "vinyl-fs": "0.0.2",
+    "nomnom": "~1.6.2",
+    "lodash.template": "~2.4.1",
+    "glob": "~3.2.8",
+    "coffee-script": "~1.7.0",
+    "cli-table": "~0.2.0",
+    "rimraf": "~2.2.6"
+  },
+  "devDependencies": {
+    "combined-stream": "0.0.4"
+  }
+}
