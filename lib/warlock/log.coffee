@@ -32,22 +32,25 @@ wrap = ( text, newline ) ->
   msg += text or ""
   msg
 
-log.error = ( msg ) ->
+log.error = ( error, code ) ->
   oldPrefix = prefix
   prefix = true
-  console.log wrap( msg ).red
-  prefix = oldPrefix
+  output = ( msg ) -> console.log wrap( msg ).red
 
-log.fatal = ( error, code ) ->
   if not error?
-    log.error "Unknown error."
+    output "Unknown error."
   else if UTIL.typeOf( error ) is 'Error'
-    log.error error.toString()
+    output error.toString()
 
     if error.stack? and ( OPTIONS( 'stack' ) or OPTIONS( 'debug' ) )
       console.error error.stack
   else
-    log.error error
+    output error
+
+  prefix = oldPrefix
+
+log.fatal = ( error, code ) ->
+  log.error error, code
 
   # TODO(jdm): Should support more sophisticated and standard error codes
   UTIL.exit code || 1

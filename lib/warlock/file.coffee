@@ -2,6 +2,7 @@ FS = require 'fs'
 PATH = require 'path'
 Q = require 'q'
 rimraf = require 'rimraf'
+gaze = require 'gaze'
 
 # warlock
 warlock = require './../warlock'
@@ -46,4 +47,10 @@ file.joinPath = ( one, two ) ->
   PATH.join one, two
 file.dirname = ( path ) ->
   PATH.dirname path
+
+class Watcher extends gaze.Gaze
+
+# file.Watcher = Watcher
+file.Watcher = gaze.Gaze
+file.watch = gaze
 

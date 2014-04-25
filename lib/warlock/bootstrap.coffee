@@ -60,38 +60,29 @@ module.exports = ( options ) ->
     flowTasks = {}
 
     # The meta-tasks are automatically generated based on the configuration of flows.
-    metaTasks = {}
-
-    getFlowTaskName = ( flowName ) ->
-      "flow::#{flowName}"
+    metaTasks = warlock.flow.getMetaTasks()
 
     # Gather up the list of flow tasks.
     flows.forEach ( flow ) ->
-      taskName = getFlowTaskName flow.name
+      taskName = flow.getTaskName()
       flowTasks[taskName] = flow.getDependencies()
 
     # Now loop through the flows again and add their reverse dependencies (e.g. for a merge). Also,
     # create the flow tasks and gather the data necessary to create meta tasks for every flow task.
     flows.forEach ( flow ) ->
-      taskName = getFlowTaskName flow.name
+      taskName = flow.getTaskName()
 
       flow.priorTo.forEach ( task ) ->
-        depName = getFlowTaskName task
+        # FIXME(jdm): There should be a way for this to return an error.
+        depName = warlock.flow( task ).getTaskName()
         if not flowTasks[depName]?
           warlock.fatal "Unknown task when adding reverse dependency for #{flow.name} - #{depName}"
 
         flowTasks[depName].push taskName
 
-      # Keep track of which flows must run during which meta-tasks
-      flow.options.tasks.forEach ( task ) ->
-        if not metaTasks[task]?
-          metaTasks[task] = []
-
-        metaTasks[task].push taskName
-
     # Now create the actual flow-tasks from the information we've collected.
     flows.forEach ( flow ) ->
-      taskName = getFlowTaskName flow.name
+      taskName = flow.getTaskName()
       deps = flowTasks[taskName]
       warlock.task.add taskName, deps, () ->
         flow.run()

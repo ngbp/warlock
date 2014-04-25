@@ -1,11 +1,10 @@
 # Node libraries
 MOUT = require 'mout'
-ES = require 'event-stream'
 
 # warlock
 warlock = require './../warlock'
 
-# Flows currently registered
+# Flows currently registered.
 flows = {}
 
 # Tasks during which flows would like to run.
@@ -15,6 +14,12 @@ definedTasks = []
 minPriority = 1
 maxPriority = 100
 
+# A cache of the list of meta tasks.
+metaTaskCache = undefined
+
+##
+# Represents a flow that passes a source through a series of streams. The heart of warlock.
+##
 class Flow
   constructor: ( @name, @options ) ->
 
@@ -24,8 +29,8 @@ class Flow
     @priorTo = []
 
     # Set the array of tasks during which this flow needs to run.
-    @options.tasks ?= []
-    @options.tasks = [ @options.tasks ] if warlock.util.typeOf( @options.tasks ) isnt 'Array'
+    @_tasks = @options.tasks or []
+    @_tasks = [ @_tasks ] if warlock.util.typeOf( @_tasks ) isnt 'Array'
 
     # Ensure the source is valid.
     if not @options.source?
@@ -35,7 +40,8 @@ class Flow
       @options.source = [ @options.source ]
 
     if not warlock.util.isFunction( @options.source ) and not warlock.util.isArray( @options.source )
-      throw new Error "Flow '#{@name}' has an invalid source. It must be a string path, an array of string paths, or a function that returns a stream."
+      throw new Error "Flow '#{@name}' has an invalid source. It must be a string path, an array " +
+        "of string paths, or a function that returns a stream."
 
     if not warlock.util.isFunction( @options.source ) and not warlock.util.isArray( @options.source )
       throw new Error "Invalid source for flow '#{@name}'; expected String, Array, or Function."
@@ -60,10 +66,8 @@ class Flow
 
     # Create pre- and post-queues for task injection.
     @queues =
-      pre: new warlock.streams.MergeQueue
-        objectMode: true
-      post: new warlock.streams.MergeQueue
-        objectMode: true
+      pre: []
+      post: []
 
     # Pre-process the merge directive.
     if @options.merge?
@@ -83,113 +87,174 @@ class Flow
       # register dependency with other flow
       @priorTo.push @merge.target
 
-  add: ( priority, name, fn ) ->
-    if @usedPriorities.indexOf( priority ) isnt -1
-      warlock.log.warning "Error loading stream '#{name}': multiple tasks in '#{@name}' flow are set to run at #{priority}. There is no guarantee which will run first."
+##
+# Adds a new stream to the this flow.
+##
+Flow::add = ( priority, name, streams ) ->
+  if @usedPriorities.indexOf( priority ) isnt -1
+    warlock.log.warning "Warning loading stream '#{name}': multiple tasks in '#{@name}' flow are " +
+      "set to run at #{priority}. There is no guarantee which will run first."
+  else
+    @usedPriorities.push priority
+
+  @steps.push
+    name: name
+    priority: priority
+    run: streams
+
+  warlock.debug.log "[#{@name}] Added stream to queue: #{name}"
+  this
+
+##
+# TODO(jdm): Implement watch functionality.
+##
+Flow::watch = ( priority, fn ) ->
+  # TODO(jdm): what to do here?
+  this
+
+##
+# Execute this flow.
+##
+Flow::run = () ->
+  warlock.verbose.log "[#{@name}] Starting run."
+
+  currentStream = () -> @stream
+  warlock.util.mout.object.forOwn @queues, ( queue, priority ) =>
+    # We handle these manually, so go ahead and ignore them.
+    return if priority in [ 'pre', 'post' ]
+
+    @add priority, "merge@#{priority}", queue
+
+  # Get the steps we need to run in the order we need to run them.
+  steps = warlock.util.mout.array.sortBy @steps, 'priority'
+
+  # Create the stream by either calling the provided function or reading files from disk. Then
+  # add it into the pre queue with anything another flow may have merged here.
+  sources = @getSources()
+  if warlock.util.isFunction sources
+    sources = sources()
+
+    # TODO(jdm): This is completely untested!
+    # TODO(jdm): Pipe the result to a validation map to ensure we're dealing with Files.
+    if warlock.util.isA sources, "Stream"
+      warlock.fatal "[#{@name}] The source function did not return a stream."
+
+    @queues.pre.push @stream, "#{@name}@everything"
+  else
+    if sources.length is 0 and @queues.pre.length is 0
+      warlock.log.warning "[#{@name}] Got empty globbing pattern. Skipping flow."
+      return
+
+  @queues.pre.push warlock.streams.fileReadStream( sources, @options.source_options )
+
+  # The pre-queue is now completely done.
+  @stream = @_mergeArrayOfStreams @queues.pre
+
+  steps.forEach ( step ) =>
+    warlock.verbose.log "[#{@name}] Piping stream to #{step.name}."
+    # Only pipe to this stream if not disabled
+    if warlock.task.isPrevented step.name
+      warlock.verbose.log "[#{@name}] Stream #{step.name} prevented from running."
     else
-      @usedPriorities.push priority
+      dest = step.run
 
-    @steps.push
-      name: name
-      priority: priority
-      run: fn
+      if warlock.util.isFunction dest
+        dest = dest warlock.config( "tasks.#{step.name}" )
 
-    warlock.debug.log "[#{@name}] Added stream to queue: #{name}"
-    this
-
-
-  watch: ( priority, fn ) ->
-    # TODO(jdm): what to do here?
-    this
-
-  run: ( callback ) ->
-    warlock.verbose.log "[#{@name}] Starting run."
-
-    warlock.util.mout.object.forOwn @queues, ( queue, priority ) =>
-      # We handle these manually, so go ahead and ignore them.
-      return if priority in [ 'pre', 'post' ]
-
-      @add priority, "merge@#{priority}", () =>
-        warlock.verbose.log "[#{@name}] Processing stream merge at #{priority}."
-        queue.push( @stream ).done()
-
-    # Get the steps we need to run in the order we need to run them.
-    steps = warlock.util.mout.array.sortBy @steps, 'priority'
-
-    # Create the stream by either calling the provided function or reading files from disk. Then
-    # add it into the pre queue with anything another flow may have merged here.
-    sources = @getSources()
-    if warlock.util.isFunction sources
-      sources = sources()
-
-      # TODO(jdm): This is completely untested!
-      if warlock.util.isA sources, "Stream"
-        warlock.fatal "[#{@name}] The source function did not return a stream."
-
-      @queues.pre.push @stream
-    else
-      if sources.length is 0 and @queues.pre.length is 0
-        warlock.log.warning "[#{@name}] Got empty globbing pattern. Skipping flow."
-        return
-
-    @queues.pre.push warlock.streams.fileReadStream( sources, @options.source_options )
-
-    # The pre-queue is now completely done.
-    @stream = @queues.pre.done()
-    
-    steps.forEach ( step ) =>
-      warlock.verbose.log "[#{@name}] Piping stream to #{step.name}."
-      # Only pipe to this stream if not disabled
-      if warlock.task.isPrevented step.name
-        warlock.verbose.log "[#{@name}] Stream #{step.name} prevented from running."
+      if warlock.util.isArray dest
+        dest.push @stream
+        @stream = @_mergeArrayOfStreams dest
       else
-        @stream = @stream.pipe step.run( warlock.config( "tasks.#{step.name}" ) )
+        @stream = @stream.pipe dest
 
-    # Add it into the post queue with anything another flow may have merged here.
-    @stream = @queues.post.push( @stream ).done()
-    if @merge?
-      # FIXME(jdm): We need to check that the flow exists first; if an invalid flow is defined, it
-      # will actually be created here and never run, of course!
-      warlock.verbose.log "[#{@name}] Merging with #{@merge.target}@#{@merge.queue}"
-      flow( @merge.target ).addToQueue @merge.queue, @stream
+  # Add it into the post queue with anything another flow may have merged here.
+  @queues.post.push @stream
+  @stream = @_mergeArrayOfStreams @queues.post
 
-      # We must return nothing so the task manager does NOT wait.
-      return
-    else if @options.dest?
-      dest = warlock.config.process @options.dest
-      warlock.verbose.log "[#{@name}] Adding destination stream #{dest}"
-      @stream = @stream.pipe warlock.streams.fileWriteStream( dest, @options.dest_options )
+  if @merge?
+    # FIXME(jdm): We need to check that the flow exists first; if an invalid flow is defined, it
+    # will actually be created here and never run, of course!
+    warlock.verbose.log "[#{@name}] Merging with #{@merge.target}@#{@merge.queue}"
+    flow( @merge.target ).addToQueue @merge.queue, @stream
 
-      # We must return the stream so the task manager knows to wait.
-      return @stream
-    else
-      warlock.log.warning "[#{@name}] No destination specified; this entire flow went nowhere."
-      return
+    # We must return nothing so the task manager does NOT wait.
+    return
+  else if @options.dest?
+    dest = warlock.config.process @options.dest
+    warlock.verbose.log "[#{@name}] Adding destination stream #{dest}"
+    @stream = @stream.pipe warlock.streams.fileWriteStream( dest, @options.dest_options )
 
-  shouldBeCleaned: () ->
-    @options.clean? and @options.clean
+    # We must return the stream so the task manager knows to wait.
+    return @stream
+  else
+    warlock.log.warning "[#{@name}] No destination specified; this entire flow went nowhere."
+    return
 
-  getDependencies: () ->
-    @deps
+##
+# A convenience method for creating a merged stream from an array of individual streams.
+##
+Flow::_mergeArrayOfStreams = ( streams ) ->
+  streams = streams.map ( s ) -> warlock.streams.highland s
+  warlock.streams.highland( streams ).merge()
 
-  getStreams: () ->
-    warlock.util.mout.array.sortBy @steps, 'priority'
+##
+# Should this flow's destination be cleaned before execution?
+##
+Flow::shouldBeCleaned = () ->
+  @options.clean? and @options.clean
 
-  getSources: () ->
-    unless warlock.util.isFunction @options.source
-      warlock.util.mout.array.flatten warlock.config.process( @options.source )
-    else
-      @options.source
+##
+# Does this flow have a watch associated with it?
+##
+Flow::shouldBeWatched = () ->
+  if not @options.watch? or @options.watch then true else false
 
-  addToQueue: ( queue, stream ) ->
-    @queues[queue] = new warlock.streams.MergeQueue() if not @queues[queue]?
-    @queues[queue].push stream
+##
+# Retrieve this flow's dependencies.
+##
+Flow::getDependencies = () ->
+  @deps
 
+##
+# Get a list of streams in this flow, sorted by their priority.
+##
+Flow::getStreams = () ->
+  warlock.util.mout.array.sortBy @steps, 'priority'
+
+##
+# Get the sources specified when this flow was defined.
+##
+Flow::getSources = () ->
+  unless warlock.util.isFunction @options.source
+    warlock.util.mout.array.flatten warlock.config.process( @options.source )
+  else
+    @options.source
+
+##
+# Get the tasks in which this flow should be included.
+##
+Flow::getTasks = () ->
+  @_tasks
+
+##
+# Add a stream to a queue within this flow so it can later be merged, creating it if one does not
+# exist.
+##
+Flow::addToQueue = ( queue, stream ) ->
+  @queues[queue] = [] if not @queues[queue]?
+  @queues[queue].push stream
+
+Flow::getTaskName = () ->
+  "flow::#{@name}"
+
+##
+# This module is just a function that creates a flow if it does not exist and returns it.
+# TODO(jdm): Add ability to re-define an existing stream.
+##
 module.exports = flow = ( name, options ) ->
   if flows[ name ]?
     if options?
       warlock.fatal "The flow '#{name}' already exists."
-      # TODO(jdm): Add ability to merge or re-define an existing stream.
   else
     flows[ name ] = new Flow( name, options )
 
@@ -200,4 +265,27 @@ module.exports = flow = ( name, options ) ->
 ###
 flow.all = () ->
   MOUT.object.values flows
+
+###
+# Get a list of flows by the meta tags during which they should run.
+###
+flow.getMetaTasks = () ->
+  # return the cached version if we can
+  return metaTaskCache if metaTaskCache?
+
+  metaTasks = {}
+
+  flow.all().forEach ( flow ) ->
+    flow.getTasks().forEach ( task ) ->
+      if not metaTasks[task]?
+        metaTasks[task] = []
+      metaTasks[task].push flow.getTaskName()
+
+  metaTaskCache = metaTasks
+
+flow.getFromTaskName = ( taskName ) ->
+  matches = taskName.match /^flow::(.+)$/
+  return if not matches? or matches.length isnt 2
+  
+  flows[ matches[1] ]
 

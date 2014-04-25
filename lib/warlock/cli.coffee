@@ -89,6 +89,9 @@ options = NOMNOM
   abbr: 'u'
   help: 'Restrict configuration commands to your local warlock configuration (warlock.json).'
   flag: true
+.option 'watch',
+  help: 'Initiate a watch from a set of tasks.'
+  flag: true
 .option 'coffee',
   help: 'When creating a new warlock app, scaffold the Gruntfile in CoffeeScript instead of JavaScript.'
   flag: true
@@ -177,7 +180,12 @@ cli = () ->
 
     # Number One, make it so!
     if runDefaultTasks or options.todo?.length > 0
-      warlock.engage options.todo
+      if options.watch
+        warlock.watch options.todo
+      else
+        warlock.engage options.todo
+    else
+      true
   .catch ( err ) ->
     warlock.fatal err
 

@@ -36,6 +36,7 @@ wRequire 'streams'
 
 # Expose some methods from the included libs directly under the warlock namespace.
 wExpose warlock.task, 'engage'
+wExpose warlock.task, 'watch'
 wExpose warlock.log, 'verbose'
 wExpose warlock.log, 'debug'
 wExpose warlock.log, 'fatal'
