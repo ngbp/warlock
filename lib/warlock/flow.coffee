@@ -90,7 +90,7 @@ class Flow
 ##
 # Adds a new stream to the this flow.
 ##
-Flow::add = ( priority, name, streams ) ->
+Flow::add = ( priority, name, streams, options ) ->
   if @usedPriorities.indexOf( priority ) isnt -1
     warlock.log.warning "Warning loading stream '#{name}': multiple tasks in '#{@name}' flow are " +
       "set to run at #{priority}. There is no guarantee which will run first."
@@ -101,6 +101,7 @@ Flow::add = ( priority, name, streams ) ->
     name: name
     priority: priority
     run: streams
+    options: options
 
   warlock.debug.log "[#{@name}] Added stream to queue: #{name}"
   this
@@ -151,21 +152,28 @@ Flow::run = () ->
   @stream = @_mergeArrayOfStreams @queues.pre
 
   steps.forEach ( step ) =>
-    warlock.verbose.log "[#{@name}] Piping stream to #{step.name}."
     # Only pipe to this stream if not disabled
     if warlock.task.isPrevented step.name
       warlock.verbose.log "[#{@name}] Stream #{step.name} prevented from running."
     else
       dest = step.run
 
-      if warlock.util.isFunction dest
-        dest = dest warlock.config( "tasks.#{step.name}" )
+      # If it's a raw handler, we pass it a stream and trust that it returns one as well.
+      if step.options?.raw
+        warlock.verbose.log "[#{@name}] Handing stream off to #{step.name}."
+        @stream = dest warlock.config( "tasks.#{step.name}" ), warlock.streams.highland( @stream )
 
-      if warlock.util.isArray dest
-        dest.push @stream
-        @stream = @_mergeArrayOfStreams dest
+        warlock.fatal "#{@name}.#{step.name} did not return a stream." if not warlock.util.isStream @stream
       else
-        @stream = @stream.pipe dest
+        warlock.verbose.log "[#{@name}] Piping stream to #{step.name}."
+        if warlock.util.isFunction dest
+          dest = dest warlock.config( "tasks.#{step.name}" )
+
+        if warlock.util.isArray dest
+          dest.push @stream
+          @stream = @_mergeArrayOfStreams dest
+        else
+          @stream = @stream.pipe dest
 
   # Add it into the post queue with anything another flow may have merged here.
   @queues.post.push @stream
