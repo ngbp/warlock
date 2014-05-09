@@ -54,6 +54,7 @@ module.exports = ( options ) ->
   , ( err ) ->
     warlock.fatal "Could not parse package.json: #{err.toString()}"
   .then () ->
+    warlock.flow.validate()
     flows = warlock.flow.all()
 
     # Flow tasks are tasks that represent single flows.

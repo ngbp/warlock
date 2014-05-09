@@ -21,71 +21,80 @@ metaTaskCache = undefined
 # Represents a flow that passes a source through a series of streams. The heart of warlock.
 ##
 class Flow
-  constructor: ( @name, @options ) ->
-
+  constructor: ( @name, options ) ->
     # Set up some instance variables we'll need later on.
     @steps = []
     @usedPriorities = []
     @priorTo = []
-
-    # Set the array of tasks during which this flow needs to run.
-    @_tasks = @options.tasks or []
-    @_tasks = [ @_tasks ] if warlock.util.typeOf( @_tasks ) isnt 'Array'
-
-    # Ensure the source is valid.
-    if not @options.source?
-      throw new Error "Flow '#{@name}' has no source. It can't do anything if it starts with nothing."
-
-    if warlock.util.isString @options.source
-      @options.source = [ @options.source ]
-
-    if not warlock.util.isFunction( @options.source ) and not warlock.util.isArray( @options.source )
-      throw new Error "Flow '#{@name}' has an invalid source. It must be a string path, an array " +
-        "of string paths, or a function that returns a stream."
-
-    if not warlock.util.isFunction( @options.source ) and not warlock.util.isArray( @options.source )
-      throw new Error "Invalid source for flow '#{@name}'; expected String, Array, or Function."
-
-    # Ensure the destination is valid.
-    if @options.dest and not warlock.util.isString @options.dest
-      throw new Error "Flow '#{@name}' has an invalid destination. It must be a string path."
-
-    # Load up the passed-in dependencies, if necessary.
-    if warlock.util.isString @options.depends
-      @options.depends = [ @options.depends ]
-
-    if @options.depends?
-      @deps = @options.depends
-    else
-      @deps = []
-
-    # Create a clean task if requested.
-    if @options.clean and @options.dest?
-      task = warlock.task.addCleanTask @name, warlock.config.process( @options.dest )
-      @deps.push task
 
     # Create pre- and post-queues for task injection.
     @queues =
       pre: []
       post: []
 
-    # Pre-process the merge directive.
-    if @options.merge?
-      mergeFmtRe = /(\w+)::([\w\d_-]+)::([\w\d]+)/
-      if not mergeFmtRe.test @options.merge
-        warlock.fatal "Invalid merge directive in #{@name} flow: #{@options.merge}"
+    @setOptions options
 
-      mergeComponents = mergeFmtRe.exec @options.merge
-      @merge =
-        type: mergeComponents[1]
-        target: mergeComponents[2]
-        queue: mergeComponents[3]
-      
-      if @merge.type not in [ 'queue', 'flow' ]
-        warlock.fatal "Invalid merge type '#{@merge.type}' in merge directive of flow #{@name}."
+Flow::setOptions = ( options ) ->
+  return @ if not options?
 
-      # register dependency with other flow
-      @priorTo.push @merge.target
+  @options = warlock.util.merge @options or {}, options
+
+  # Set the array of tasks during which this flow needs to run.
+  @_tasks = @_tasks or @options.tasks or []
+  @_tasks = [ @_tasks ] if warlock.util.typeOf( @_tasks ) isnt 'Array'
+
+  # Load up the passed-in dependencies, if necessary.
+  if warlock.util.isString @options.depends
+    @options.depends = [ @options.depends ]
+
+Flow::validate = () ->
+  # Ensure the source is valid.
+  if not @options.source?
+    throw new Error "Flow '#{@name}' has no source. It can't do anything if it starts with nothing."
+
+  if warlock.util.isString @options.source
+    @options.source = [ @options.source ]
+
+  if not warlock.util.isFunction( @options.source ) and not warlock.util.isArray( @options.source )
+    throw new Error "Flow '#{@name}' has an invalid source. It must be a string path, an array " +
+      "of string paths, or a function that returns a stream."
+
+  if not warlock.util.isFunction( @options.source ) and not warlock.util.isArray( @options.source )
+    throw new Error "Invalid source for flow '#{@name}'; expected String, Array, or Function."
+
+  # Ensure the destination is valid.
+  if @options.dest and not warlock.util.isString @options.dest
+    throw new Error "Flow '#{@name}' has an invalid destination. It must be a string path."
+
+  # Pre-process the merge directive.
+  if @options.merge?
+    mergeFmtRe = /(\w+)::([\w\d_-]+)::([\w\d]+)/
+    if not mergeFmtRe.test @options.merge
+      warlock.fatal "Invalid merge directive in #{@name} flow: #{@options.merge}"
+
+    mergeComponents = mergeFmtRe.exec @options.merge
+    @merge =
+      type: mergeComponents[1]
+      target: mergeComponents[2]
+      queue: mergeComponents[3]
+
+    if @merge.type not in [ 'queue', 'flow' ]
+      warlock.fatal "Invalid merge type '#{@merge.type}' in merge directive of flow #{@name}."
+
+    # register dependency with other flow
+    @priorTo.push @merge.target
+
+  if @options.depends?
+    @deps = @options.depends
+  else
+    @deps = []
+
+  # Create a clean task if requested.
+  if @options.clean and @options.dest?
+    task = warlock.task.addCleanTask @name, warlock.config.process( @options.dest )
+    @deps.push task
+
+  @
 
 ##
 # Adds a new stream to the this flow.
@@ -262,7 +271,8 @@ Flow::getTaskName = () ->
 module.exports = flow = ( name, options ) ->
   if flows[ name ]?
     if options?
-      warlock.fatal "The flow '#{name}' already exists."
+      warlock.verbose.log "The flow '#{name}' already exists, so I'm updating the options instead."
+      flows[ name ].setOptions options
   else
     flows[ name ] = new Flow( name, options )
 
@@ -273,6 +283,10 @@ module.exports = flow = ( name, options ) ->
 ###
 flow.all = () ->
   MOUT.object.values flows
+
+flow.validate = () ->
+  MOUT.object.forOwn flows, ( flow ) ->
+    flow.validate()
 
 ###
 # Get a list of flows by the meta tags during which they should run.
@@ -294,6 +308,6 @@ flow.getMetaTasks = () ->
 flow.getFromTaskName = ( taskName ) ->
   matches = taskName.match /^flow::(.+)$/
   return if not matches? or matches.length isnt 2
-  
+
   flows[ matches[1] ]
 
