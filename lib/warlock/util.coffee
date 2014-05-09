@@ -7,11 +7,18 @@ GLOB = require 'glob'
 ASYNC = require 'async'
 MOUT = require 'mout'
 
+# There is a bug that has not been pushed to NPM. https://github.com/nrf110/deepmerge/issues/12
+# MERGE = require 'deepmerge'
+MERGE = require './../deepmerge'
+
 # warlock
 warlock = require './../warlock'
 
 # The exported module.
 util = module.exports = {}
+
+# Merge objects deeply.
+util.merge = MERGE
 
 # This fixes a Windows problem with truncating output when using process.exit
 # See https://github.com/cowboy/node-exit
@@ -62,6 +69,7 @@ classMap =
   "[object Array]": "Array"
   "[object Date]": "Date"
   "[object Error]": "Error"
+  "[object Stream]": "Stream"
 
 # Match "[object ___]" where "___" is a [[Class]] value.
 classNameRE = /^\[object (.*)\]$/
@@ -99,7 +107,7 @@ util.isFunction = ( value ) ->
 util.isString = ( value ) ->
   util.isA value, "String"
 util.isStream = ( value ) ->
-  util.isA value, "Stream"
+  warlock.streams.highland.isStream value
 
 # Execute a function for every non-object property, recursing into objects and arrays.
 # This is a direct port of grunt.util.recurse

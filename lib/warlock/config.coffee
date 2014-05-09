@@ -3,7 +3,6 @@ MOUT = require 'mout'
 Q = require 'q'
 FS = require 'fs'
 FINDUP = require 'findup-sync'
-MERGE = require 'deepmerge'
 
 # warlock libs
 warlock = require './../warlock'
@@ -59,7 +58,7 @@ config = module.exports = ( key, val, merge ) ->
 ###
 config.init = ( conf ) ->
   _userConfig = conf
-  _config = MERGE {}, _defaultConfig
+  _config = warlock.util.merge {}, _defaultConfig
 
 ###
 # Process every property of an object recursively as a template.
@@ -97,7 +96,7 @@ config.process = ( raw ) ->
 # Merge a config object into the current configuration.
 ###
 config.merge = ( conf ) ->
-  _config = MERGE _config, conf
+  _config = warlock.util.merge _config, conf
   @
 
 config.set = ( key, val ) ->
@@ -137,7 +136,7 @@ config.user.getRaw = ( key ) ->
 # Merge a config object into the user configuration.
 ###
 config.user.merge = ( conf ) ->
-  _userConfig = MERGE _userConfig, conf
+  _userConfig = warlock.util.merge _userConfig, conf
 
 ###
 # Set a configuration item on the user's configuration.
@@ -163,5 +162,5 @@ config.write = ( includeSystem ) ->
     LOG.fatal "Could not stringify JSON for config: #{err.toString()}"
 
 _getCombinedConfig = () ->
-  MERGE _config, _userConfig
+  warlock.util.merge _config, _userConfig
 
