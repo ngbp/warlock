@@ -92,6 +92,11 @@ module.exports = ( options ) ->
     warlock.util.mout.object.forOwn metaTasks, ( deps, task ) ->
       warlock.task.add task, deps
 
+    # Now create alias tasks
+    aliases = warlock.config 'alias'
+    (Object.keys aliases).forEach ( key ) =>
+      warlock.task.add key, [].concat aliases[key]
+
     warlock.util.q true
   .then () ->
     # Ensure we have a default task defined, if none has been specified elsewhere

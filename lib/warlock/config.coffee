@@ -26,6 +26,9 @@ _defaultConfig =
   # Tasks to inject into one of the flows.
   inject: []
 
+  # Task aliases - key is the name of the task alias, and the value is a string or array of strings
+  alias: {}
+
   # The default tasks to run when none are specified.
   default: []
 
