@@ -93,7 +93,7 @@ module.exports = ( options ) ->
       warlock.task.add task, deps
 
     # Now create alias tasks
-    aliases = warlock.config 'alias'
+    aliases = warlock.config 'aliases'
     (Object.keys aliases).forEach ( key ) =>
       warlock.task.add key, [].concat aliases[key]
 

@@ -27,7 +27,7 @@ _defaultConfig =
   inject: []
 
   # Task aliases - key is the name of the task alias, and the value is a string or array of strings
-  alias: {}
+  aliases: {}
 
   # The default tasks to run when none are specified.
   default: []
