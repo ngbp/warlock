@@ -40,5 +40,11 @@ streams.fileWriteStream = ( path, options ) ->
   options = warlock.config.process( options ) if options?
   VFS.dest path, options
 
+# Glob Stream
+streams.glob = highland.wrapCallback require( "glob" )
+
+# Transform a node callback into a stream.
+streams.wrapCallback = highland.wrapCallback
+
 streams.highland = highland
 

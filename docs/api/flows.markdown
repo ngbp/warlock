@@ -153,6 +153,26 @@ e.g. `tasks.coffee-to-build.coffeescript-compile`.
 Because of the vast assortment of Gulp plugins, there is no need to write your own most of the time
 (though it's fairly straightforward when you need to).
 
+On rare occasions, a simple writeable stream won't due; in that event, you can pass `{ raw: true }`
+as the `options` parameter. Instead of running the function and piping the latest stream to the
+resulting stream, it will pass the latest stream *to* the function and expect the function to return
+the latest stream. As an example, `spell-webapp` needs to ensure correct ordering of script and
+style files before they are loaded into the configuration for the template to automatically insert.
+Since streams are inherently asynchronous, we cannot use the standard method. Instead, we can do
+this:
+
+```coffee
+warlock.flow( 'scripts-to-build' )
+.add( 100, 'webapp-sort', ( options, stream ) ->
+    stream.collect()
+      .invoke( 'sort', [ util.sortVendorFirst warlock.config "globs.vendor.js" ] )
+      .flatten(), { raw: true } )
+```
+
+This is a very advanced usage, but the meaning of the code is fairly straightforward: take the
+stream; collect all data written to it into an array; invoke the `sort` method on the array, passing
+in the sorting algorithm; and return a new stream that emits the re-ordered results.
+
 ## warlock.flow::run()
 
 The method that kicks off the run of a particular flow. This should never be called by the user.

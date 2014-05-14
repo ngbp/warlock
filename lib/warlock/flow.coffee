@@ -167,6 +167,9 @@ Flow::run = () ->
     else
       dest = step.run
 
+      if step.options?.collect
+        @stream = @stream.collect()
+
       # If it's a raw handler, we pass it a stream and trust that it returns one as well.
       if step.options?.raw
         warlock.verbose.log "[#{@name}] Handing stream off to #{step.name}."
@@ -183,6 +186,9 @@ Flow::run = () ->
           @stream = @_mergeArrayOfStreams dest
         else
           @stream = @stream.pipe dest
+
+      if step.options?.collect
+        @stream = @stream.flatten()
 
   # Add it into the post queue with anything another flow may have merged here.
   @queues.post.push @stream
@@ -205,14 +211,14 @@ Flow::run = () ->
     return @stream
   else
     warlock.log.warning "[#{@name}] No destination specified; this entire flow went nowhere."
-    return
+    return @stream
 
 ##
 # A convenience method for creating a merged stream from an array of individual streams.
 ##
 Flow::_mergeArrayOfStreams = ( streams ) ->
-  streams = streams.map ( s ) -> warlock.streams.highland s
-  warlock.streams.highland( streams ).merge()
+  streams = streams.map ( s ) -> warlock.streams.highland( s ).collect()
+  warlock.streams.highland( streams ).merge().flatten()
 
 ##
 # Should this flow's destination be cleaned before execution?
