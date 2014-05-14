@@ -40,7 +40,7 @@ help.printFlowsTable = () ->
     warlock.log.writeln flow.name.underline.bold
     warlock.log.table [
       [ "Source".cyan, source or "none" ]
-      [ "Dest".cyan, dest ]
+      [ "Dest".cyan, dest or "none" ]
       [ "Streams".cyan, streams ]
     ]
 
