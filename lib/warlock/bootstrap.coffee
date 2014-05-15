@@ -6,24 +6,46 @@ PATH = require 'path'
 # ngbo libraries
 warlock = require './../warlock'
 
-module.exports = ( options ) ->
+
+bootstrap = module.exports = ( options ) ->
   warlock.debug.log "Bootstrapping warlock..."
   # Store the options provided for system-wide access
   warlock.options.init options
-
-  # Locate the configuration file and save its path for later use
+  
   configPath = FINDUP warlock.options( 'configPath' ), { cwd: process.cwd() }
+  pkgPath = FINDUP "package.json", { cwd: process.cwd() }
+  
   promise = warlock.util.q "{}"
+  bootstrap.readConfig configPath, pkgPath, promise
+  
+  promise
+  .then () ->
+    bootstrap.loadPlugins
+  .then () -> 
+    bootstrap.setDefaultTask
+
+  warlock.util.q true
+
+
+
+###
+# Find the warlock configuration and package.json, using defaults as necessary,
+# read them in, and initialise the configuration using them
+###
+bootstrap.readConfig = ( configPath, pkgPath, promise ) ->
+  # Locate the configuration file and save its path for later use
   if not configPath?
     warlock.log.warning "No config file found. Using empty configuration instead."
   else
     warlock.debug.log "Config found: #{configPath}"
     promise = warlock.file.readFile( configPath )
 
-  promise
+  return promise
   .then ( file ) ->
     # Save the config file location for later use
     warlock.options 'configFile', configPath || 'warlock.json'
+    
+    # TODO (pml): is it always true that the projectPath is the dir part of configPath?
     warlock.options 'projectPath', PATH.dirname( configPath )
 
     # Parse its contents
@@ -31,12 +53,11 @@ module.exports = ( options ) ->
   , ( err ) ->
     warlock.fatal "Could not read config file: #{err.toString()}."
   .then ( config ) ->
-    warlock.debug.log "Config loaded."
+    warlock.debug.log "Config loaded, content was:\n" + JSON.stringify( config )
     # Load the config into warlock
     warlock.config.init config
 
     # Read in the package.json. It's required.
-    pkgPath = FINDUP "package.json", { cwd: process.cwd() }
     warlock.file.readFile( pkgPath )
   , ( err ) ->
     warlock.fatal "Could not parse config file: #{err.toString()}"
@@ -48,11 +69,19 @@ module.exports = ( options ) ->
   .then ( pkg ) ->
     warlock.debug.log "package.json loaded to `pkg`."
     warlock.config "pkg", pkg
-
-    # Load all the plugins
-    warlock.plugins.load()
   , ( err ) ->
     warlock.fatal "Could not parse package.json: #{err.toString()}"
+
+
+
+###
+# Load all plugins
+###
+bootstrap.loadPlugins = () -> 
+  # Load all the plugins
+  warlock.debug.log "commencing loading plugins"
+
+  warlock.plugins.load()
   .then () ->
     warlock.flow.validate()
     flows = warlock.flow.all()
@@ -92,14 +121,18 @@ module.exports = ( options ) ->
     warlock.util.mout.object.forOwn metaTasks, ( deps, task ) ->
       warlock.task.add task, deps
 
+    warlock.debug.log "plugins loaded"
+    
     warlock.util.q true
-  .then () ->
-    # Ensure we have a default task defined, if none has been specified elsewhere
-    tasks = warlock.config( "default" )
-    if tasks? and tasks?.length
-      warlock.task.add "default", tasks
-    else
-      warlock.log.warning "There is no default task defined. This is usually handed by plugins or spells."
 
-    warlock.util.q true
+
+bootstrap.setDefaultTask = () ->
+  # Set the default task(s)
+  tasks = warlock.config( "default" )
+  
+  if tasks? and tasks?.length
+    warlock.task.add "default", tasks
+  else
+    warlock.log.warning "There is no default task defined. This is usually handed by plugins or spells."
+
 
