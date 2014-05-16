@@ -21,15 +21,13 @@ _defaultConfig =
   plugins: []
    
   # Tasks to prevent from running.
-  prevent: [ 'something1' ]
+  prevent: []
 
   # Tasks to inject into one of the flows.
   inject: []
 
   # The default tasks to run when none are specified.
   default: []
-
-  myval: "Hello!"
 
 ###
 # The current warlock-wide configuration.
@@ -41,6 +39,15 @@ _config = {}
 ###
 _userConfig = {}
 
+
+###
+# A multi-purpose function, allows merging config into the cached config, setting
+# a key to a given value, or retrieving a value given a key
+#
+# key should always be provided.  If val is provided, then key is set to val.
+# if merge is provided, then the content of merge is merged into the config
+# In all instances, the value associated with the requested key is returned.
+###
 config = module.exports = ( key, val, merge ) ->
   if key
     if val
