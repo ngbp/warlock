@@ -15,14 +15,11 @@ bootstrap = module.exports = ( options ) ->
   configPath = FINDUP warlock.options( 'configPath' ), { cwd: process.cwd() }
   pkgPath = FINDUP "package.json", { cwd: process.cwd() }
   
-  promise = warlock.util.q "{}"
-  bootstrap.readConfig configPath, pkgPath, promise
-  
-  promise
+  bootstrap._readConfig( configPath, pkgPath )
   .then () ->
-    bootstrap.loadPlugins
+    bootstrap._loadPlugins
   .then () -> 
-    bootstrap.setDefaultTask
+    bootstrap._setDefaultTask
 
   warlock.util.q true
 
@@ -32,8 +29,10 @@ bootstrap = module.exports = ( options ) ->
 # Find the warlock configuration and package.json, using defaults as necessary,
 # read them in, and initialise the configuration using them
 ###
-bootstrap.readConfig = ( configPath, pkgPath, promise ) ->
+bootstrap._readConfig = ( configPath, pkgPath, promise ) ->
   # Locate the configuration file and save its path for later use
+  promise = warlock.util.q "{}"
+
   if not configPath?
     warlock.log.warning "No config file found. Using empty configuration instead."
   else
@@ -77,7 +76,7 @@ bootstrap.readConfig = ( configPath, pkgPath, promise ) ->
 ###
 # Load all plugins
 ###
-bootstrap.loadPlugins = () -> 
+bootstrap._loadPlugins = () -> 
   # Load all the plugins
   warlock.debug.log "commencing loading plugins"
 
@@ -126,7 +125,7 @@ bootstrap.loadPlugins = () ->
     warlock.util.q true
 
 
-bootstrap.setDefaultTask = () ->
+bootstrap._setDefaultTask = () ->
   # Set the default task(s)
   tasks = warlock.config( "default" )
   

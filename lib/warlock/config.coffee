@@ -45,7 +45,7 @@ _userConfig = {}
 # a key to a given value, or retrieving a value given a key
 #
 # key should always be provided.  If val is provided, then key is set to val.
-# if merge is provided, then the content of merge is merged into the config
+# if merge is true, then the content of merge is merged into the config
 # In all instances, the value associated with the requested key is returned.
 ###
 config = module.exports = ( key, val, merge ) ->

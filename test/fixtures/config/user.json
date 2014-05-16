@@ -1,7 +1,7 @@
 {
-  "standard_values": {
-    "one": false,
-    "extra_1": 1,
-    "extra_2": true
+  "blah": {
+    "one": true,
+    "two": false,
+    "three": "three"
   }
 }
