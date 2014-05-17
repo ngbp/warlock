@@ -17,21 +17,27 @@ describe 'warlock bootstrap: ', ->
     it 'config, empty package.json, loaded correctly', ( done )->
       bootstrap._readConfig 'test/fixtures/bootstrap/user.json', 'test/fixtures/bootstrap/empty.json'
       .then ->
-        config.get( 'standard_values.one' ).should.eql false
-        config.get( 'standard_values.extra_1' ).should.eql 1
-        config.get( 'standard_values.extra_2' ).should.eql 'fred'
-        done()
+        try
+          config.get( 'standard_values.one' ).should.eql false
+          config.get( 'standard_values.extra_1' ).should.eql 1
+          config.get( 'standard_values.extra_2' ).should.eql 'fred'
+          done()
+        catch err
+          done( err )
 
 
     it 'empty config, package.json, loaded correctly', ( done ) ->
       bootstrap._readConfig 'test/fixtures/bootstrap/empty.json', 'test/fixtures/bootstrap/package.json'
       .then ->
-        config.get( 'pkg.standard_values.one' ).should.eql true
-        config.get( 'pkg.standard_values.two' ).should.eql false
-        config.get( 'pkg.standard_values.three' ).should.eql "three"
-        config.get( 'pkg.structures.a_hash' ).should.eql { "value_1": "value", "value_2": true, "value_3": 3 }
-        config.get( 'pkg.structures.an_array' ).should.eql ["test", 1, true, "john"]
-        done()
+        try
+          config.get( 'pkg.standard_values.one' ).should.eql true
+          config.get( 'pkg.standard_values.two' ).should.eql false
+          config.get( 'pkg.standard_values.three' ).should.eql "three"
+          config.get( 'pkg.structures.a_hash' ).should.eql { "value_1": "value", "value_2": true, "value_3": 3 }
+          config.get( 'pkg.structures.an_array' ).should.eql ["test", 1, true, "john"]
+          done()
+        catch err
+          done( err )
 
     # TODO(pml): not clear how to test exceptions when asynch - mocha doesn't have great support
     # ideally we'd test a file that cannot parse, a missing file etc
@@ -43,10 +49,13 @@ describe 'warlock bootstrap: ', ->
 
   describe 'setDefaultTask', ->
     it 'establishes default tasks', ( done ) ->
-      config.set( 'default', [ 'a_task' ] )
-      
-      bootstrap._setDefaultTask()
-      done()
+      try
+        config.set( 'default', [ 'a_task' ] )
+        
+        bootstrap._setDefaultTask()
+        done()
+      catch err
+        done( err )
       
       # TODO(pml): this doesn't work - task setup needs more content
       # warlock.task.getTasks().should.eql( [ 'a_task' ] )
