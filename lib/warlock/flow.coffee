@@ -194,7 +194,12 @@ Flow::run = () ->
   @queues.post.push @stream
   @stream = @_mergeArrayOfStreams @queues.post
 
-  if @merge?
+  if @options.passive
+    if @merge? or @options.dest?
+      warlock.fatal "[#{@name}] Cannot be passive, yet have a destination."
+    return @stream
+
+  else if @merge?
     # FIXME(jdm): We need to check that the flow exists first; if an invalid flow is defined, it
     # will actually be created here and never run, of course!
     warlock.verbose.log "[#{@name}] Merging with #{@merge.target}@#{@merge.queue}"
