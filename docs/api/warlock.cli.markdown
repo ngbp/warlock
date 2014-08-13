@@ -2,6 +2,8 @@
 
 The command-line processor for Warlock.
 
+---
+
 ## warlock.cli() : Promise
 
 Process the command line and do what needs to be done.

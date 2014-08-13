@@ -25,7 +25,7 @@ streams.template = ( dest ) ->
 
   highland().map ( file ) ->
     return file if file.isNull()
-    data.filepath = warlock.file.joinPath dest, file.relative
+    data.filepath = if file.relative then warlock.file.joinPath dest, file.relative else 
     contents = warlock.util.template file.contents.toString(), data
     file.contents = new Buffer contents
     file

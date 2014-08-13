@@ -144,18 +144,17 @@ Flow::run = () ->
   if warlock.util.isFunction sources
     sources = sources()
 
-    # TODO(jdm): This is completely untested!
     # TODO(jdm): Pipe the result to a validation map to ensure we're dealing with Files.
-    if warlock.util.isA sources, "Stream"
+    if not warlock.util.isStream sources
       warlock.fatal "[#{@name}] The source function did not return a stream."
 
-    @queues.pre.push @stream, "#{@name}@everything"
+    @queues.pre.push sources
   else
     if sources.length is 0 and @queues.pre.length is 0
       warlock.log.warning "[#{@name}] Got empty globbing pattern. Skipping flow."
       return
 
-  @queues.pre.push warlock.streams.fileReadStream( sources, @options.source_options )
+    @queues.pre.push warlock.streams.fileReadStream( sources, @options.source_options )
 
   # The pre-queue is now completely done.
   @stream = @_mergeArrayOfStreams @queues.pre

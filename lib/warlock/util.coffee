@@ -59,6 +59,9 @@ util.stringifyJson = ( obj, pretty ) ->
   Q.try () ->
     if pretty then JSON.stringify( obj, null, " " ) else JSON.stringify( obj )
 
+util.stringifyJsonSync = ( obj, pretty ) ->
+  if pretty then JSON.stringify( obj, null, " " ) else JSON.stringify( obj )
+
 # Determining variables types
 classMap =
   "[object Number]": "Number"

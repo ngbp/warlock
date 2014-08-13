@@ -47,6 +47,7 @@ file.joinPath = ( one, two ) ->
   PATH.join one, two
 file.dirname = ( path ) ->
   PATH.dirname path
+file.basename = PATH.basename
 
 class Watcher extends gaze.Gaze
 
