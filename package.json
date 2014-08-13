@@ -1,6 +1,6 @@
 {
   "name": "warlock-engine",
-  "version": "1.0.0-alpha.2",
+  "version": "1.0.0-alpha.3",
   "description": "A flexible, extensible, best-practices build automation and management system for web projects.",
   "homepage": "http://getwarlock.com",
   "author": {
