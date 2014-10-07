@@ -127,7 +127,8 @@ util.forEveryProperty = ( value, fn, fnContinue ) ->
     obj = {}
     MOUT.object.forIn value, ( val, key ) ->
       obj[ key ] = util.forEveryProperty val, fn, fnContinue
-
+      return true
+    
     obj
   else
     # Otherwise pass value into fn and return.

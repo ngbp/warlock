@@ -43,5 +43,9 @@
     "q": "~0.9.7",
     "rimraf": "~2.2.6",
     "vinyl-fs": "0.0.2"
+  },
+  "devDependencies": {
+    "mocha": "^1.18.2",
+    "should": "^3.3.1"
   }
 }

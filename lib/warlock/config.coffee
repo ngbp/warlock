@@ -21,15 +21,13 @@ _defaultConfig =
   plugins: []
    
   # Tasks to prevent from running.
-  prevent: [ 'something1' ]
+  prevent: []
 
   # Tasks to inject into one of the flows.
   inject: []
 
   # The default tasks to run when none are specified.
   default: []
-
-  myval: "Hello!"
 
 ###
 # The current warlock-wide configuration.
@@ -41,6 +39,17 @@ _config = {}
 ###
 _userConfig = {}
 
+
+###
+# A multi-purpose function, allows merging config into the cached config, setting
+# a key to a given value, or retrieving a value given a key
+#
+# key should always be provided.  If val is provided, then key is set to val
+# overwriting any previous value. If merge is true, then val is merged into the config,
+# being added to any array or object already in the config at that key.
+#
+# In all instances, the value associated with the requested key is returned.
+###
 config = module.exports = ( key, val, merge ) ->
   if key
     if val
@@ -61,7 +70,10 @@ config.init = ( conf ) ->
   _config = warlock.util.merge {}, _defaultConfig
 
 ###
-# Process every property of an object recursively as a template.
+# Process every property of an object recursively as a template, if the
+# attribute is a string, and in the format <%= xxxxx %> then get the value
+# of xxx from the config, and substitute it in to the resulting object.
+#
 # Ripped from Grunt nearly directly.
 ###
 propStringTmplRe = /^<%=\s*([a-z0-9_$]+(?:\.[a-z0-9_$]+)*)\s*%>$/i
@@ -110,7 +122,7 @@ config.getRaw = ( key ) ->
   if key? then MOUT.object.get( _getCombinedConfig(), key ) else _getCombinedConfig()
 
 ###
-# The user's configuration, containing only those variables set of manipulated by the user. All of
+# The user's configuration, containing only those variables set or manipulated by the user. All of
 # these are also in _config, but this is what should be synchronized to warlock.json.
 ###
 

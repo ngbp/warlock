@@ -1,0 +1,15 @@
+{
+  "standard_values": {
+    "one": true,
+    "two": false,
+    "three": "three"
+  },
+  "structures": {
+    "a_hash": {
+      "value_1": "value",
+      "value_2": true,
+      "value_3": 3
+    },
+    "an_array": ["test", 1, true, "john"]
+  }
+}
