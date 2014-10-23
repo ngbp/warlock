@@ -4,6 +4,7 @@
 var gulp = require( 'gulp' );
 var istanbul = require( 'gulp-istanbul' );
 var mocha = require( 'gulp-mocha' );
+var coveralls = require( 'gulp-coveralls' );
 
 gulp.task( 'test', function ( cb ) {
   gulp.src([ 'lib/**/*.js', '!lib/**/*.spec.js' ])
@@ -11,8 +12,15 @@ gulp.task( 'test', function ( cb ) {
     .on( 'finish', function () {
       gulp.src([ 'lib/**/*.spec.js' ])
         .pipe( mocha({ reporter: 'spec', slow: 50 }) )
-        .pipe( istanbul.writeReports({ reporters: [ 'html', 'text-summary', 'text' ] }) )
+        .pipe( istanbul.writeReports({ reporters: [ 'html', 'text-summary', 'text', 'lcov' ] }) )
         .on( 'end', cb );
     });
 });
+
+gulp.task( 'coveralls', [ 'test' ], function () {
+  gulp.src([ 'coverage/lcov.info' ])
+    .pipe( coveralls );
+});
+
+gulp.task( 'ci', [ 'test', 'coveralls' ] );
 
