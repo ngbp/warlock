@@ -18,8 +18,8 @@ gulp.task( 'test', function ( cb ) {
 });
 
 gulp.task( 'coveralls', [ 'test' ], function () {
-  gulp.src([ 'coverage/lcov.info' ])
-    .pipe( coveralls );
+  return gulp.src([ 'coverage/lcov.info' ])
+    .pipe( coveralls() );
 });
 
 gulp.task( 'ci', [ 'test', 'coveralls' ] );
