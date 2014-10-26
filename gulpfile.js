@@ -24,3 +24,5 @@ gulp.task( 'coveralls', [ 'test' ], function () {
 
 gulp.task( 'ci', [ 'test', 'coveralls' ] );
 
+gulp.task( 'default', [ 'test' ] );
+
