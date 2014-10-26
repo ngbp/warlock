@@ -5,8 +5,17 @@ var gulp = require( 'gulp' );
 var istanbul = require( 'gulp-istanbul' );
 var mocha = require( 'gulp-mocha' );
 var coveralls = require( 'gulp-coveralls' );
+var jshint = require( 'gulp-jshint' );
+var stylish = require( 'jshint-stylish' );
 
-gulp.task( 'test', function ( cb ) {
+gulp.task( 'lint', function () {
+  return gulp.src([ 'lib/**/*.js', 'gulpfile.js' ])
+    .pipe( jshint() )
+    .pipe( jshint.reporter( stylish ) )
+    .pipe( jshint.reporter( 'fail' ) );
+});
+
+gulp.task( 'test', [ 'lint' ], function ( cb ) {
   gulp.src([ 'lib/**/*.js', '!lib/**/*.spec.js' ])
     .pipe( istanbul() )
     .on( 'finish', function () {
