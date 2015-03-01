@@ -1,7 +1,13 @@
-import {expect} from 'chai'
+import chai from 'chai'
 import WarlockTask from '../src/Task'
 import immutable from 'immutable'
 import _ from 'highland'
+import sinon from 'sinon'
+import sinonChai from 'sinon-chai'
+
+chai.use( sinonChai );
+var expect = chai.expect;
+var Map = immutable.Map;
 
 describe( 'WarlockTask', function () {
   beforeEach( function () {
@@ -22,7 +28,7 @@ describe( 'WarlockTask', function () {
 
   describe( 'options()', function () {
     it( 'should return an immutable map', function () {
-      expect( this.task.options() ).to.be.an.instanceOf( immutable.Map );
+      expect( this.task.options() ).to.be.an.instanceOf( Map );
     });
 
     it( 'should have "name" as a top-level key', function () {
@@ -41,9 +47,77 @@ describe( 'WarlockTask', function () {
   });
 
   describe( '_run()', function () {
-    it( 'should return a stream', function () {
-      var stream = _();
-      expect( _.isStream( this.task._run( stream ) ) ).to.be.ok;
+    beforeEach( function () {
+      this.stream = _();
+      sinon.spy( this.task, 'run' );
+    });
+
+    describe( 'given no environment is specified', function () {
+      it( 'should return a stream', function () {
+        expect( _.isStream( this.task._run( this.stream ) ) ).to.be.ok;
+      });
+
+      it( 'should execute the task', function () {
+        this.task._run( this.stream );
+        expect( this.task.run ).to.have.been.called;
+      });
+    });
+
+    describe( 'given a single specified environment', function () {
+      beforeEach( function () {
+        this.task = new WarlockTask( this.name, { environment: 'prod' } );
+        sinon.spy( this.task, 'run' );
+      });
+
+      describe( 'and there is no provided version', function () {
+        it( 'should execute the stream', function () {
+          this.task._run( this.stream, Map({}) );
+          expect( this.task.run ).to.have.been.called;
+        });
+      });
+
+      describe( 'and that it does not match the provided version', function () {
+        it( 'should not execute the stream', function () {
+          this.task._run( this.stream, Map({ environment: 'dev' }) );
+          expect( this.task.run ).to.not.have.been.called;
+        });
+      });
+
+      describe( 'and that it matches the provided version', function () {
+        it( 'should execute the stream', function () {
+          this.task._run( this.stream, Map({ environment: 'prod' }) );
+          expect( this.task.run ).to.have.been.called;
+        });
+      });
+    });
+
+    describe( 'given a multiple specified environments', function () {
+      beforeEach( function () {
+        this.task = new WarlockTask( this.name, { environment: [ 'stage', 'prod' ] } );
+        sinon.spy( this.task, 'run' );
+      });
+
+      describe( 'and there is no provided version', function () {
+        it( 'should execute the stream', function () {
+          this.task._run( this.stream, Map({}) );
+          
+          expect( this.task.run ).to.have.been.called;
+        });
+      });
+
+      describe( 'and none matches the provided version', function () {
+        it( 'should not execute the stream', function () {
+          this.task._run( this.stream, Map({ environment: 'dev' }) );
+          expect( this.task.run ).to.not.have.been.called;
+        });
+      });
+
+      describe( 'and that one matches the provided version', function () {
+        it( 'should execute the stream', function () {
+          this.task._run( this.stream, Map({ environment: 'prod' }) );
+          expect( this.task.run ).to.have.been.called;
+        });
+      });
     });
   });
 });

@@ -6,16 +6,15 @@ import immutable from 'immutable'
  */
 
 export default class WarlockTask {
-  constructor ( name ) {
+  constructor ( name, options = {} ) {
     if ( ! util.isString( name ) || name === '' ) {
       throw new Error( 'Tasks must have a name.' );
     }
 
-    this._options = new immutable.Map({ $$name: name });
-
-    // TODO(jdm): We should merge in a default config passed to the constructor, which will be
-    // supplemented at runtime by the user config. E.g.:
-    // this.options( config );
+    // We should merge in a default config passed to the constructor, which will be supplemented at
+    // runtime by the user config. E.g.:
+    options.$$name = name;
+    this._options = immutable.fromJS( options );
   }
 
   /**
@@ -36,13 +35,31 @@ export default class WarlockTask {
    * Wrap the execution of the this task to allow for internal logic independent of the logic of the
    * task, assumed to be defined in a child class.
    */
-  _run ( stream, metadata = {} ) {
-    var env = this.options().get( 'env' );
+  _run ( stream, metadata = new immutable.Map({}) ) {
+    var env = this.options().get( 'environment' );
+    var targetEnv = metadata.get( 'environment' );
 
     // TODO(jdm): check if task is disabled
 
-    // TODO(jdm): If this task is restricted to a certain environment and we're not in it, don't run
-    // it.
+    // If this task is restricted to a certain environment and we're not in it, don't run it.
+    if ( env && targetEnv ) {
+
+      // Convert one environment to an array of one environment, for consistency.
+      if ( util.isString( env ) ) {
+        // TODO(jdm): persist this change
+        env = immutable.List.of( env );
+      }
+
+      // TODO(jdm): throw an error if not a List
+
+      // If the environments don't match, we shouldn't run this task. Log an info and
+      // return the stream unhanged.
+      if ( ! env.contains( targetEnv ) ) {
+        // TODO(jdm): Log that we're skipping this task because the environment didn't match.
+        // warlock.info( `Task ${this.name} skipped in ${metadata.environment}.` );
+        return stream;
+      }
+    }
 
     // We're good, so run the task.
     return this.run( stream, metadata );

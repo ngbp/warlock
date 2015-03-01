@@ -23,5 +23,17 @@
   "engines": {
     "node": ">= 0.10"
   },
-  "main": "index.js"
+  "scripts": {
+    "test": "./node_modules/.bin/mocha --compilers js:babel/register -R spec test/**/*.spec.js"
+  },
+  "main": "index.js",
+  "devDependencies": {
+    "babel": "^4.5.5",
+    "chai": "^2.1.0",
+    "highland": "^2.4.0",
+    "immutable": "^3.6.2",
+    "mocha": "^2.1.0",
+    "sinon": "^1.12.2",
+    "sinon-chai": "^2.7.0"
+  }
 }
