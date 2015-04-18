@@ -1,0 +1,9 @@
+
+<% warlock.pipeline( 'browser::vendor::javascripts' ).files.forEach( function ( file ) {%>
+<script src="<%= file %>"></script>
+<%});%>
+
+<% warlock.pipeline( 'browser::source::javascripts' ).files.forEach( function ( file ) {%>
+<script src="<%= file %>"></script>
+<%});%>
+

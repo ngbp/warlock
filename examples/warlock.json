@@ -1,0 +1,24 @@
+{
+  "spells": {
+    "browser": {
+      "some": "configuration here"
+    }
+  },
+  "pipelines": {
+    "browser::javascript": {
+      "filter": "**/*.js",
+
+      "tasks": {
+        "lint": {},
+        "concat": {
+          "name": "my-app.min.js",
+          "env": [ "production", "testing" ]
+        },
+        "min": {
+          "env": "production"
+        }
+      }
+    }
+  }
+}
+
