@@ -15,7 +15,7 @@ Warlock should use a "convention over configuration" philosophy to encourage bes
 save developers time. In many ways, Warlock is like Grunt, Gulp, and Yeoman - but on steroids.
 
 Warlock is in the **very** early stages of development, but if you're interested in learning more or
-taking it for a spin, check out the [Tutorial](#/guide/tutorial).
+taking it for a spin, check out the [Tutorial](https://github.com/ngbp/warlock/blob/master/docs/guides/tutorial.md).
 
 Warlock is based, in part, on work done for [ngbp](https://github.com/ngbp/ngbp).
 
